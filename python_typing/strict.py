@@ -1,10 +1,8 @@
 import logging
 from copy import deepcopy
-import pdb
 from inspect import getfullargspec
-# from typing import Iterable
-# from collections.abc import Iterable
 from collections import abc
+import typing
 
 
 
@@ -24,7 +22,7 @@ class Typing:
         for key, value in kwargs.items():
             self._is_of_type(value, arg_spec.annotations[key])
     
-    def _assert_type(self, value, expected_types):
+    def _assert_type_helper(self, value, expected_types):
         multiple_valid_types = False
         is_an_expected_type = False
         if isinstance(expected_types, tuple):
@@ -32,7 +30,7 @@ class Typing:
             multiple_valid_types = len(expected_types) > 1
             for type_ in expected_types:
                 is_an_expected_type = is_an_expected_type or isinstance(value, type_)
-            valid_types = ",".join([type_.__name__ for type_ in expected_types])
+            valid_types = ", ".join([type_.__name__ for type_ in expected_types])
         else:
             is_an_expected_type = isinstance(value, expected_types)
             valid_types = expected_types.__name__
@@ -43,10 +41,22 @@ class Typing:
             valid_types_msg = f'is not of type {valid_types}'
 
         if not is_an_expected_type:
-            msg = f'value ({value}) in function "{self._func_name}(...)" ' + valid_types_msg
+            msg = f'value ({value}) in "{self._func_name}(...)" ' + valid_types_msg
             if not self._log_errors:
                 raise TypeError(msg)
             logging.warning(msg)
+    
+    def _assert_type(self, value, expected_types):
+        try:
+            if expected_types.__origin__ is typing.Union:
+                self._assert_type_helper(value, expected_types.__args__)
+        except AttributeError:
+            self._assert_type_helper(value, expected_types)
+    
+    def _assert_structure(self, structure, expected_structure):
+        if structure is not expected_structure.__origin__:
+            msg = f'Expected type {expected_structure} in "{self._func_name}(...)" got {structure.__name__}'
+            raise TypeError(msg)
 
     def _is_of_type_list(self, values: list, type: type):
         for value in values:
@@ -59,20 +69,25 @@ class Typing:
             self._is_of_type(value, value_type)
 
     def _is_of_type_set(self, values: set, type: type):
-        pass
+        raise NotImplementedError()
+
+    def _is_of_type_tuple(self, values: set, type: type):
+        raise NotImplementedError()
 
     def _is_of_type(self, value, type):
         if value is None:
             return
         if isinstance(value, dict):
-            assert type.__origin__ is dict
+            self._assert_structure(dict, expected_structure=type)
             return self._is_of_type_dict(value, type.__args__)
-        if isinstance(value, list):
-            assert type.__origin__ is list
-            return self._is_of_type_list(value, type.__args__)
-        if isinstance(value, set):
+        elif isinstance(value, list):
+            self._assert_structure(list, expected_structure=type)
+            return self._is_of_type_list(value, type.__args__[0])
+        elif isinstance(value, set):
+            self._assert_structure(set, expected_structure=type)
             return self._is_of_type_set()
-        if isinstance(value, tuple):
+        elif isinstance(value, tuple):
+            self._assert_structure(tuple, expected_structure=type)
             return self._is_of_type_tuple()
         self._assert_type(value, type)
 
