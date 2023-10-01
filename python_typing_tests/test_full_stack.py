@@ -1,6 +1,40 @@
-from typing import Dict, List, Set, Tuple, Union
+import heapq
+import pdb
+from typing import Dict, List, Optional, Set, Tuple, Union
 import pytest
 from python_typing.strict import strict
+
+
+def test_empty():
+    @strict
+    def _func():
+        pass
+    _func()
+
+
+def test_empty_pass_arg():
+    @strict
+    def _func():
+        pass
+    with pytest.raises(TypeError) as err:
+        _func("arg")
+    assert str(err.value) == '_func() takes 0 positional arguments but 1 was given'
+
+
+def test_arg_pass_nothing():
+    @strict
+    def _func(_):
+        pass
+    with pytest.raises(TypeError) as err:
+        _func()
+    assert str(err.value) == "_func() missing 1 required positional argument: '_'"
+
+
+def test_arg_no_type():
+    @strict
+    def _func(_):
+        pass
+    _func("arg")
 
 
 def test_string_arg():
@@ -8,6 +42,15 @@ def test_string_arg():
     def _func(_: str):
         pass
     _func("arg")
+
+
+def test_string_arg_gets_shortened():
+    @strict
+    def _func(_: int):
+        pass
+    with pytest.raises(TypeError) as err:
+        _func("loooooooooooooooong")
+    assert str(err.value) == 'Value (looooooooo..) in "_func(_=int)" is not of type int'
 
 
 def test_int_arg():
@@ -35,7 +78,7 @@ def test_string_arg_fails():
         pass
     with pytest.raises(TypeError) as err:
         _func(1)
-    assert str(err.value) == 'Value (1) in "_func(_=...)" is not of type str'
+    assert str(err.value) == 'Value (1) in "_func(_=str)" is not of type str'
 
 
 def test_custom_arg_fails():
@@ -48,7 +91,7 @@ def test_custom_arg_fails():
 
     with pytest.raises(TypeError) as err:
         _func(1)
-    assert str(err.value) == 'Value (1) in "_func(_=...)" is not of type CustomType'
+    assert str(err.value) == 'Value (1) in "_func(_=CustomType)" is not of type CustomType'
 
 
 def test_list_arg():
@@ -58,13 +101,22 @@ def test_list_arg():
     _func([1,2,3])
 
 
+def test_string_arg_expect_list():
+    @strict
+    def _func(_: List[str]):
+        pass
+    with pytest.raises(TypeError) as err:
+        _func("arg")
+    assert str(err.value) == 'Value (arg) in "_func(_=typing.List[str])" is not of type list'
+
+
 def test_list_arg_as_dict():
     @strict
     def _func(_: List[int]):
         pass
     with pytest.raises(TypeError) as err:
         _func({"arg": 1})
-    assert str(err.value) == 'Expected type typing.List[int] in "_func(_=...)" got dict'
+    assert str(err.value) == 'Expected type typing.List[int] in "_func(_=typing.List[int])" got dict'
 
 
 def test_malformed_list_arg():
@@ -73,7 +125,7 @@ def test_malformed_list_arg():
         pass
     with pytest.raises(TypeError) as err:
         _func([1,2,'whoops!',3])
-    assert str(err.value) == 'Value (whoops!) in "_func(_=...)" is not of type int'
+    assert str(err.value) == 'Value (whoops!) in "_func(_=typing.List[int])" is not of type int'
 
 
 def test_union_arg_first():
@@ -103,7 +155,7 @@ def test_union_arg_invalid():
         pass
     with pytest.raises(TypeError) as err:
         _func(3.14)
-    assert str(err.value) == 'Value (3.14) in "_func(_=...)" is not any of the valid types (int, str)'
+    assert str(err.value) == 'Value (3.14) in "_func(_=typing.Union[int, str])" is not any of the valid types (int, str)'
 
 
 def test_malformed_list_arg_multiple_valid_types():
@@ -126,7 +178,7 @@ def test_dict_arg_as_list():
         pass
     with pytest.raises(TypeError) as err:
         _func(["arg", 1])
-    assert str(err.value) == 'Expected type typing.Dict[str, int] in "_func(_=...)" got list'
+    assert str(err.value) == 'Expected type typing.Dict[str, int] in "_func(_=typing.Dict[str, int])" got list'
 
 
 def test_dict_arg_invalid():
@@ -135,7 +187,7 @@ def test_dict_arg_invalid():
         pass
     with pytest.raises(TypeError) as err:
         _func({1: 3.14})
-    assert str(err.value) == 'Value (1) in "_func(_=...)" is not of type str'
+    assert str(err.value) == 'Value (1) in "_func(_=typing.Dict[str, int])" is not of type str'
 
 
 def test_dict_arg_multiple_key_values():
@@ -163,7 +215,7 @@ def test_dict_arg_malformed_multiple_key_values():
                 "arg3": 3,
             }
         )
-    assert str(err.value) == 'Value (2) in "_func(_=...)" is not of type str'
+    assert str(err.value) == 'Value (2) in "_func(_=typing.Dict[str, int])" is not of type str'
 
 
 def test_dict_arg_multiple_valid_types():
@@ -187,7 +239,7 @@ def test_dict_of_dict_arg_give_list():
         pass
     with pytest.raises(TypeError) as err:
         _func({"arg": [1,2,3]})
-    assert str(err.value) == 'Expected type typing.Dict[str, float] in "_func(_=...)" got list'
+    assert str(err.value) == 'Expected type typing.Dict[str, typing.Dict[str, float]] in "_func(_=typing.Dict[str, typing.Dict[str, float]])" got list'
 
 
 def test_dict_of_dict_of_list_arg():
@@ -209,7 +261,7 @@ def test_set_arg_wrong_structure():
         pass
     with pytest.raises(TypeError) as err:
         _func(["one", "two"])
-    assert str(err.value) == 'Expected type typing.Set[str] in "_func(_=...)" got list'
+    assert str(err.value) == 'Expected type typing.Set[str] in "_func(_=typing.Set[str])" got list'
 
 
 def test_set_arg_with_union():
@@ -232,7 +284,7 @@ def test_tuple_arg_wrong_structure():
         pass
     with pytest.raises(TypeError) as err:
         _func(["one", "two"])
-    assert str(err.value) == 'Expected type typing.Tuple[str] in "_func(_=...)" got list'
+    assert str(err.value) == 'Expected type typing.Tuple[str] in "_func(_=typing.Tuple[str])" got list'
 
 
 def test_return_str():
@@ -249,14 +301,13 @@ def test_return_int():
     _func()
 
 
-# def test_return_str_expect_int():
-#     @strict
-#     # def _func() -> int:
-#     def _func() -> List[int]:
-#         return "one"
-#     with pytest.raises(TypeError) as err:
-#         _func()
-#     assert str(err.value) == 'return Value (one) in "_func(_=...)" is not of type int'
+def test_return_str_expect_list():
+    @strict
+    def _func() -> List[int]:
+        return 1
+    with pytest.raises(TypeError) as err:
+        _func()
+    assert str(err.value) == 'Return value (1) in "_func() -> typing.List[int]" is not of type list'
 
 
 def test_return_str_expect_int():
@@ -266,8 +317,6 @@ def test_return_str_expect_int():
     with pytest.raises(TypeError) as err:
         _func()
     assert str(err.value) == 'Return value (one) in "_func() -> int" is not of type int'
-
-
 
 
 def test_return_dict():
@@ -348,6 +397,83 @@ def test_default_wrong_type():
         pass
     with pytest.raises(TypeError) as err:
         _func()
-    assert str(err.value) == 'Value (1) in "_func(_=...)" is not of type str'
+    assert str(err.value) == 'Value (1) in "_func(_=str)" is not of type str'
 
-# _func(_:str=1) expects type str but got type int.
+
+def test_one_arg_wrong():
+    @strict
+    def _func(one: int, two: int, three: str = "three"):
+        pass
+    with pytest.raises(TypeError) as err:
+        _func(1, two="oops!")
+    assert str(err.value) == 'Value (oops!) in "_func(two=int)" is not of type int'
+
+
+def test_some_specified_some_not():
+    @strict
+    def _func(one: str, two, three: int):
+        pass
+    _func("arg", 2, 3)
+
+
+# Optional[...] tests
+
+def test_arg_optional():
+    @strict
+    def _func(_: Optional[str]):
+        pass
+    _func("arg")
+
+
+def test_arg_optional_none_specified():
+    @strict
+    def _func(_: Optional[str]):
+        # Note the arg isn't actually optional here
+        pass
+    with pytest.raises(TypeError) as err:
+        _func()
+    assert str(err.value) == "_func() missing 1 required positional argument: '_'"
+
+
+def test_arg_optional_give_none():
+    @strict
+    def _func(_: Optional[str] = None):
+        pass
+    _func()
+
+
+def test_arg_optional_give_correct_default():
+    @strict
+    def _func(_: Optional[str] = "string"):
+        pass
+    _func()
+
+
+def test_arg_optional_give_wrong_default():
+    @strict
+    def _func(_: Optional[str] = 1):
+        pass
+    with pytest.raises(TypeError) as err:
+        _func()
+    assert str(err.value) == 'Value (1) in "_func(_=typing.Optional[str])" is not any of the valid types (str, NoneType)'
+
+
+def test_heap():
+    @strict
+    def _func(_: list):
+        pass
+    q = []
+    heapq.heappush(q, (1, 'test'))
+    _func(q)
+
+
+def test_heap_expect_dict():
+    @strict
+    def _func(_: dict):
+        pass
+    q = []
+    heapq.heappush(q, (1, 'test'))
+    with pytest.raises(TypeError) as err:
+        _func(q)
+    assert str(err.value) == 'Expected type dict in "_func(_=dict)" got list'
+

@@ -1,4 +1,3 @@
-import logging
 from copy import deepcopy
 from inspect import getfullargspec, signature, _empty
 import pdb
@@ -9,36 +8,50 @@ import typing
 class Typing:
     def __init__(self) -> None:
         self._func_name = "unknown"
-        # self._checking_return_value = False
         self._return_type = None
         self._arg_name = None
+        self._arg_type = None
 
     def check_arg_types(self, func, arg_values, kwargs):
-        self._func_name = func.__name__
-        arg_spec = getfullargspec(func)
-        sig = signature(func)
-        kwargs = deepcopy(kwargs)
+        try:
+            self._func_name = func.__name__
+            arg_spec = getfullargspec(func)
+            sig = signature(func)
+            kwargs = deepcopy(kwargs)
 
-        # set the default values
-        for arg, value in sig.parameters.items():
-            if arg not in kwargs:
-                kwargs[arg] = value.default if value.default != _empty else None
+            # set the default values
+            for arg, value in sig.parameters.items():
+                if arg not in kwargs:
+                    kwargs[arg] = value.default if value.default != _empty else None
 
-        # set the args
-        args_to_kwargs = {key: value for key, value in zip(arg_spec.args, arg_values)}
-        kwargs.update(args_to_kwargs)
+            # set the args
+            args_to_kwargs = {key: value for key, value in zip(arg_spec.args, arg_values)}
+            kwargs.update(args_to_kwargs)
 
-        for key, value in kwargs.items():
-            self._arg_name = key
-            self._is_of_type(value, arg_spec.annotations[key])
+            for key, value in kwargs.items():
+                self._arg_name = key
+                if key in arg_spec.annotations:
+                    self._arg_type = arg_spec.annotations[key]
+                    self._is_of_type(value, self._arg_type)
+        except TypeError:
+            raise
+        except:
+            # Any errors that are not TypeErrors are bugs that should not
+            # impact users of this library
+            pass
         
     def check_return_type(self, func, return_value):
-        # self._checking_return_value = True
-        arg_spec = getfullargspec(func)
-        if 'return' in arg_spec.annotations:
-            self._return_type = arg_spec.annotations['return']
-            self._is_of_type(return_value, self._return_type)
-            # self._is_of_type(return_value, arg_spec.annotations['return'])
+        try:
+            arg_spec = getfullargspec(func)
+            if 'return' in arg_spec.annotations:
+                self._return_type = arg_spec.annotations['return']
+                self._is_of_type(return_value, self._return_type)
+        except TypeError:
+            raise
+        except:
+            # Any errors that are not TypeErrors are bugs that should not
+            # impact users of this library
+            pass
     
     def _assert_type_helper(self, value, expected_types):
         multiple_valid_types = False
@@ -50,8 +63,8 @@ class Typing:
                 is_an_expected_type = is_an_expected_type or isinstance(value, type_)
             valid_types = ", ".join([type_.__name__ for type_ in expected_types])
         else:
-            is_an_expected_type = isinstance(value, expected_types)
             valid_types = expected_types.__name__
+            is_an_expected_type = isinstance(value, expected_types)
         
         if multiple_valid_types:
             valid_types_msg = f"is not any of the valid types ({valid_types})"
@@ -62,11 +75,14 @@ class Typing:
             msg = ''
             if self._return_type is not None:
                 msg += "return "
-                func_sig = f'"{self._func_name}() -> {self._return_type.__name__}" '
+                return_type = getattr(self._return_type, "__name__", self._return_type)
+                func_sig = f'"{self._func_name}() -> {return_type}" '
             else:
-                func_sig = f'"{self._func_name}({self._arg_name}=...)" '
+                arg_type = getattr(self._arg_type, "__name__", self._arg_type)
+                func_sig = f'"{self._func_name}({self._arg_name}={arg_type})" '
 
-            msg += f'value ({value}) in ' + func_sig + valid_types_msg
+            shortened_value = str(value)[:10] + (str(value)[10:] and '..')
+            msg += f'value ({shortened_value}) in ' + func_sig + valid_types_msg
 
             msg = msg[:1].upper() + msg[1:]
             raise TypeError(msg)
@@ -75,12 +91,16 @@ class Typing:
         try:
             if expected_types.__origin__ is typing.Union:
                 self._assert_type_helper(value, expected_types.__args__)
+            else:
+                self._assert_type_helper(value, expected_types.__origin__)
         except AttributeError:
             self._assert_type_helper(value, expected_types)
     
     def _assert_structure(self, structure, expected_structure):
-        if structure is not expected_structure.__origin__:
-            msg = f'Expected type {expected_structure} in "{self._func_name}({self._arg_name}=...)" got {structure.__name__}'
+        expected_structure_type = getattr(expected_structure, "__origin__", expected_structure)
+        if structure is not expected_structure_type:
+            arg_type = getattr(self._arg_type, "__name__", self._arg_type)
+            msg = f'Expected type {arg_type} in "{self._func_name}({self._arg_name}={arg_type})" got {structure.__name__}'
             raise TypeError(msg)
 
     def _is_of_type_list(self, values: list, type: type):
