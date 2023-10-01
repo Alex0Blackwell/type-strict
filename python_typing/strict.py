@@ -102,7 +102,11 @@ class Typing:
         )
         if structure is not expected_structure_type:
             arg_type = getattr(self._arg_type, "__name__", self._arg_type)
-            msg = f'Expected type {arg_type} in "{self._func_name}({self._arg_name}={arg_type})" got {structure.__name__}'
+            msg = (
+                f"Expected type {arg_type} in "
+                f'"{self._func_name}({self._arg_name}={arg_type})" '
+                f"got {structure.__name__}"
+            )
             raise TypeError(msg)
 
     def _is_of_type_list(self, values: list, type: type):
@@ -140,6 +144,10 @@ class Typing:
 
 
 def strict(func):
+    """
+    Raises a TypeError if any specified argument or return type mismatches its value.
+    """
+
     def inner(*arg_values, **kwargs):
         typing = Typing()
         typing.check_arg_types(func, arg_values, kwargs)
