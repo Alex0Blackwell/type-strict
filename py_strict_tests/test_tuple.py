@@ -2,7 +2,7 @@ from typing import Tuple
 
 import pytest
 
-from python_typing.strict import strict
+from py_strict.strict import strict
 
 
 def test_tuple_arg():

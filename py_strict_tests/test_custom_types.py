@@ -2,7 +2,7 @@ import heapq
 
 import pytest
 
-from python_typing.strict import strict
+from py_strict.strict import strict
 
 
 def test_custom_arg():

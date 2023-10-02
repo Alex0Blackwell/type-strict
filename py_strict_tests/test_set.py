@@ -2,7 +2,7 @@ from typing import Set, Union
 
 import pytest
 
-from python_typing.strict import strict
+from py_strict.strict import strict
 
 
 def test_set_arg():

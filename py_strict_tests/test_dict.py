@@ -2,7 +2,7 @@ from typing import Dict, List, Union
 
 import pytest
 
-from python_typing.strict import strict
+from py_strict.strict import strict
 
 
 def test_dict_arg():
