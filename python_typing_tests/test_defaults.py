@@ -90,7 +90,8 @@ def test_arg_optional_none_specified():
 
     with pytest.raises(TypeError) as err:
         _func()
-    assert str(err.value) == "_func() missing 1 required positional argument: '_'"
+    # Assert "in" for python 3.10+ compatibility
+    assert "_func() missing 1 required positional argument: '_'" in str(err.value)
 
 
 def test_arg_optional_give_none():

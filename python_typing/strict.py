@@ -1,6 +1,6 @@
 import typing
 from copy import deepcopy
-from inspect import _empty, getfullargspec, signature
+from inspect import _empty, getfullargspec, isclass, signature
 
 
 class Typing:
@@ -53,6 +53,10 @@ class Typing:
             # impact users of this library
             pass
 
+    def _format_type(self, type):
+        # Get rid of <class ...> repr
+        return type.__name__ if isclass(type) else type
+
     def _assert_type_helper(self, value, expected_types):
         multiple_valid_types = False
         is_an_expected_type = False
@@ -75,10 +79,10 @@ class Typing:
             msg = ""
             if self._return_type is not None:
                 msg += "return "
-                return_type = getattr(self._return_type, "__name__", self._return_type)
+                return_type = self._format_type(self._return_type)
                 func_sig = f'"{self._func_name}() -> {return_type}" '
             else:
-                arg_type = getattr(self._arg_type, "__name__", self._arg_type)
+                arg_type = self._format_type(self._arg_type)
                 func_sig = f'"{self._func_name}({self._arg_name}={arg_type})" '
 
             shortened_value = str(value)[:10] + (str(value)[10:] and "..")
@@ -101,7 +105,7 @@ class Typing:
             expected_structure, "__origin__", expected_structure
         )
         if structure is not expected_structure_type:
-            arg_type = getattr(self._arg_type, "__name__", self._arg_type)
+            arg_type = self._format_type(self._arg_type)
             msg = (
                 f"Expected type {arg_type} in "
                 f'"{self._func_name}({self._arg_name}={arg_type})" '

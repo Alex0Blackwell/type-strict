@@ -20,7 +20,8 @@ def test_empty_pass_arg():
 
     with pytest.raises(TypeError) as err:
         _func("arg")
-    assert str(err.value) == "_func() takes 0 positional arguments but 1 was given"
+    # Assert "in" for python 3.10+ compatibility
+    assert "_func() takes 0 positional arguments but 1 was given" in str(err.value)
 
 
 def test_arg_pass_nothing():
@@ -30,7 +31,8 @@ def test_arg_pass_nothing():
 
     with pytest.raises(TypeError) as err:
         _func()
-    assert str(err.value) == "_func() missing 1 required positional argument: '_'"
+    # Assert "in" for python 3.10+ compatibility
+    assert "_func() missing 1 required positional argument: '_'" in str(err.value)
 
 
 def test_arg_no_type():
@@ -184,4 +186,7 @@ def test_callable_arg_not_callable():
 
     with pytest.raises(TypeError) as err:
         _func(1)
-    assert str(err.value) == 'Value (1) in "_func(_=typing.Callable)" is not of type Callable'
+    assert (
+        str(err.value)
+        == 'Value (1) in "_func(_=typing.Callable)" is not of type Callable'
+    )
