@@ -53,9 +53,9 @@ class Typing:
             # impact users of this library
             pass
 
-    def _format_type(self, type):
+    def _format_type(self, type_):
         # Get rid of <class ...> repr
-        return type.__name__ if isclass(type) else type
+        return type_.__name__ if isclass(type_) else type_
 
     def _assert_type_helper(self, value, expected_types):
         multiple_valid_types = False
@@ -113,38 +113,38 @@ class Typing:
             )
             raise TypeError(msg)
 
-    def _is_of_type_list(self, values: list, type: type):
+    def _is_of_type_list(self, values: list, type_: type):
         for value in values:
-            self._is_of_type(value, type)
+            self._is_of_type(value, type_)
 
-    def _is_of_type_dict(self, key_to_value: dict, type_to_type: tuple):
-        key_type, value_type = type_to_type
+    def _is_of_type_dict(self, key_to_value: dict, key_to_value_type: tuple):
+        key_type, value_type = key_to_value_type
         for key, value in key_to_value.items():
             self._is_of_type(key, key_type)
             self._is_of_type(value, value_type)
 
-    def _is_of_type_set(self, values: set, type: type):
-        return self._is_of_type_list(values, type)
+    def _is_of_type_set(self, values: set, type_: type):
+        return self._is_of_type_list(values, type_)
 
-    def _is_of_type_tuple(self, values: set, type: type):
-        return self._is_of_type_list(values, type)
+    def _is_of_type_tuple(self, values: set, type_: type):
+        return self._is_of_type_list(values, type_)
 
-    def _is_of_type(self, value, type):
+    def _is_of_type(self, value, type_):
         if value is None:
             return
         if isinstance(value, dict):
-            self._assert_structure(dict, expected_structure=type)
-            return self._is_of_type_dict(value, type.__args__)
+            self._assert_structure(dict, expected_structure=type_)
+            return self._is_of_type_dict(value, type_.__args__)
         elif isinstance(value, list):
-            self._assert_structure(list, expected_structure=type)
-            return self._is_of_type_list(value, type.__args__[0])
+            self._assert_structure(list, expected_structure=type_)
+            return self._is_of_type_list(value, type_.__args__[0])
         elif isinstance(value, set):
-            self._assert_structure(set, expected_structure=type)
-            return self._is_of_type_set(value, type.__args__[0])
+            self._assert_structure(set, expected_structure=type_)
+            return self._is_of_type_set(value, type_.__args__[0])
         elif isinstance(value, tuple):
-            self._assert_structure(tuple, expected_structure=type)
-            return self._is_of_type_tuple(value, type.__args__[0])
-        self._assert_type(value, type)
+            self._assert_structure(tuple, expected_structure=type_)
+            return self._is_of_type_tuple(value, type_.__args__[0])
+        self._assert_type(value, type_)
 
 
 def strict(func):
