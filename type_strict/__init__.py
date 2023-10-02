@@ -1,5 +1,5 @@
 """
-py_strict.
+type_strict.
 
 Python's missing runtime type checker
 """

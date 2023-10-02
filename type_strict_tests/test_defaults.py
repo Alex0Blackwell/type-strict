@@ -3,7 +3,7 @@ from typing import Optional
 
 import pytest
 
-from py_strict.strict import strict
+from type_strict.strict import strict
 
 
 def test_default():

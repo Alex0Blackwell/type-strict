@@ -6,14 +6,14 @@ this_directory = Path(__file__).parent
 long_description = (this_directory / "README.md").read_text()
 
 setup(
-    name="py-strict",
+    name="type-strict",
     version="0.1.0",
     description="Python's missing runtime type checker",
-    # url='https://github.com/',
+    url='https://github.com/Alex0Blackwell/type-strict',
     author="Alex Blackwell",
     author_email="alex.blackwell314@gmail.com",
     license="MIT",
-    packages=["py_strict"],
+    packages=["type_strict"],
     long_description=long_description,
     long_description_content_type="text/markdown",
     classifiers=[

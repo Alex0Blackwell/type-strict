@@ -1,16 +1,16 @@
-# Py-Strict
+# Type-Strict
 Python's missing runtime type checker
 
 ## Installation
 
 ```
-pip install py-strict
+pip install type-strict
 ```
 
 ## Usage
 
 ```py
-from py_strict import strict
+from type_strict import strict
 
 @strict
 def person_age(name: str, age: int) -> str
@@ -44,7 +44,7 @@ def func(person: Person, employee: Employee):
 4. Checks return type if specified.
 5. Works with any combination of args, kwargs, and defaults.
 6. Informative error messages.
-7. In the event of a failure, Py-Strict swallows the error to avoid user impact.
+7. In the event of a failure, type-strict swallows the error to avoid user impact.
 
 ## Limitations
 1. **Performance:** Type checking is done at _runtime_. So, there is a performance
