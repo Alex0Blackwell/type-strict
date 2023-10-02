@@ -7,7 +7,7 @@ long_description = (this_directory / "README.md").read_text()
 
 setup(
     name="py-strict",
-    version="0.1.1",
+    version="0.1.0",
     description="Python's missing runtime type checker",
     # url='https://github.com/',
     author="Alex Blackwell",
